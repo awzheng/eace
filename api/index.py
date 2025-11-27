@@ -1,43 +1,21 @@
 """
 Vercel Serverless Function Entry Point
-This wraps the FastAPI app for Vercel deployment.
 """
 
-import os
-import sys
-
-# Add parent directory to path so we can import from root
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from pathlib import Path
-from typing import Optional
-
 from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
-import google.generativeai as genai
+from typing import Optional
+from pathlib import Path
+import os
 
-# Configure Gemini from environment variable
-api_key = os.getenv("GEMINI_API_KEY")
-if api_key:
-    genai.configure(api_key=api_key)
+app = FastAPI()
 
-app = FastAPI(title="eace", description="Easy ECE - Personal Electronics Learning Wiki")
-
-# Determine base path (works for both local and Vercel)
-if os.getenv("VERCEL"):
-    BASE_DIR = Path("/var/task")
-else:
-    BASE_DIR = Path(__file__).parent.parent
-
+# Determine base path for Vercel
+BASE_DIR = Path(__file__).parent.parent
 CONTENT_DIR = BASE_DIR / "content"
 TEMPLATES_DIR = BASE_DIR / "templates"
 STATIC_DIR = BASE_DIR / "static"
-
-# Mount static files (only if directory exists and not on Vercel's restricted paths)
-if STATIC_DIR.exists() and not os.getenv("VERCEL"):
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 class ExplainRequest(BaseModel):
@@ -87,7 +65,7 @@ async def root():
     """Serve the main wiki interface."""
     index_path = TEMPLATES_DIR / "index.html"
     if index_path.exists():
-        return FileResponse(str(index_path))
+        return HTMLResponse(content=index_path.read_text(encoding='utf-8'))
     return HTMLResponse("<h1>eace</h1><p>Template not found</p>")
 
 
@@ -96,7 +74,16 @@ async def serve_static(path: str):
     """Serve static files."""
     file_path = STATIC_DIR / path
     if file_path.exists() and file_path.is_file():
-        return FileResponse(str(file_path))
+        content = file_path.read_text(encoding='utf-8')
+        
+        # Set correct content type
+        content_type = "text/plain"
+        if path.endswith('.css'):
+            content_type = "text/css"
+        elif path.endswith('.js'):
+            content_type = "application/javascript"
+        
+        return HTMLResponse(content=content, media_type=content_type)
     raise HTTPException(status_code=404, detail="Static file not found")
 
 
@@ -139,6 +126,8 @@ async def get_content(path: str):
 @app.post("/explain")
 async def explain_text(request: ExplainRequest):
     """Use Gemini to explain the selected text simply."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    
     if not api_key:
         raise HTTPException(
             status_code=503, 
@@ -148,9 +137,13 @@ async def explain_text(request: ExplainRequest):
     if not request.text.strip():
         raise HTTPException(status_code=400, detail="No text provided")
     
-    context_info = f" in the context of {request.context}" if request.context else ""
-    
-    prompt = f"""You are a friendly electronics engineering tutor helping a student understand technical concepts.
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        
+        context_info = f" in the context of {request.context}" if request.context else ""
+        
+        prompt = f"""You are a friendly electronics engineering tutor helping a student understand technical concepts.
 
 The student has highlighted the following text{context_info} and needs a simple explanation:
 
@@ -164,14 +157,10 @@ Please explain this concept in a clear, beginner-friendly way. Use:
 
 Remember: The student is learning electronics engineering, so relate concepts back to circuits and practical applications when relevant."""
 
-    try:
         model = genai.GenerativeModel('gemini-1.5-flash')
         response = model.generate_content(prompt)
         return {"explanation": response.text}
+    except ImportError:
+        raise HTTPException(status_code=503, detail="AI service not available")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI explanation failed: {str(e)}")
-
-
-# For Vercel
-handler = app
-
