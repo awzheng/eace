@@ -141,23 +141,19 @@ async def explain_text(request: ExplainRequest):
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         
-        context_info = f" in the context of {request.context}" if request.context else ""
+        context_info = f" (context: {request.context})" if request.context else ""
         
-        prompt = f"""You are a friendly electronics engineering tutor helping a student understand technical concepts.
-
-The student has highlighted the following text{context_info} and needs a simple explanation:
+        prompt = f"""Explain this electronics concept in 2-4 sentences max{context_info}:
 
 "{request.text}"
 
-Please explain this concept in a clear, beginner-friendly way. Use:
-1. Simple analogies (like water flow for current, pressure for voltage)
-2. Real-world examples when possible
-3. Key points in bullet form if helpful
-4. Keep it concise but thorough
+Rules:
+- Be direct and concise
+- Use a simple analogy if helpful
+- No greetings, no "let me know if you have questions", no filler
+- Just the explanation, nothing else"""
 
-Remember: The student is learning electronics engineering, so relate concepts back to circuits and practical applications when relevant."""
-
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(prompt)
         return {"explanation": response.text}
     except ImportError:

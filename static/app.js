@@ -443,12 +443,7 @@ document.addEventListener('mousedown', (e) => {
     }
 });
 
-// Close popup when clicking outside of it
-document.addEventListener('click', (e) => {
-    if (activePopup && !e.target.closest('.explain-popup') && !e.target.closest('.explain-btn')) {
-        closePopup();
-    }
-});
+// Popups stay open until explicitly closed - no auto-close on outside click
 
 // Explain button click
 explainBtn.addEventListener('click', (e) => {
@@ -464,10 +459,4 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Reposition popup on scroll/resize
-window.addEventListener('scroll', () => {
-    // Close popup on scroll for simplicity
-    if (activePopup) {
-        closePopup();
-    }
-});
+// Popups stay open during scroll - no auto-close
