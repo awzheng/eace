@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eace · Easy ECE</title>
+    
+    <!-- Fonts: Distinctive choices for a technical wiki feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Markdown-it for client-side MD rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
+    
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <header class="sidebar-header">
+                <h1 class="logo">
+                    <span class="logo-icon">⚡</span>
+                    <span class="logo-text">eace</span>
+                </h1>
+                <p class="tagline">Easy ECE</p>
+            </header>
+            
+            <nav class="nav-tree" id="nav-tree">
+                <div class="nav-loading">Loading notes...</div>
+            </nav>
+            
+            <footer class="sidebar-footer">
+                <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+                    <span class="theme-icon light-icon">☀️</span>
+                    <span class="theme-icon dark-icon">🌙</span>
+                </button>
+            </footer>
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="content">
+            <div class="content-wrapper" id="content-wrapper">
+                <!-- Welcome Screen -->
+                <div class="welcome" id="welcome">
+                    <div class="welcome-inner">
+                        <div class="welcome-icon">📖</div>
+                        <h2>Welcome to eace</h2>
+                        <p>Select a note from the sidebar to begin learning.</p>
+                        <div class="welcome-hint">
+                            <strong>Tip:</strong> Highlight any text and click 
+                            <span class="hint-button">eace Explain</span> 
+                            to get an AI-powered explanation.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Article Content (hidden by default) -->
+                <article class="article" id="article" hidden>
+                    <div class="article-header">
+                        <nav class="breadcrumb" id="breadcrumb"></nav>
+                    </div>
+                    <div class="article-body" id="article-body"></div>
+                </article>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Floating Explain Button (appears on text selection) -->
+    <button class="explain-btn" id="explain-btn" hidden>
+        <span class="explain-icon">✨</span>
+        eace Explain
+    </button>
+    
+    <!-- Explanation Modal -->
+    <div class="modal-overlay" id="modal-overlay" hidden>
+        <div class="modal" id="explanation-modal">
+            <header class="modal-header">
+                <h3>
+                    <span class="modal-icon">💡</span>
+                    Explanation
+                </h3>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </header>
+            <div class="modal-selected" id="modal-selected"></div>
+            <div class="modal-body" id="modal-body">
+                <div class="modal-loading">
+                    <div class="spinner"></div>
+                    <span>Thinking...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/app.js"></script>
+</body>
+</html>
+
