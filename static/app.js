@@ -254,10 +254,17 @@ function handleTextSelection(e) {
     explainBtn.style.left = `${left}px`;
     explainBtn.style.top = `${top}px`;
     explainBtn.hidden = false;
+    explainBtn.classList.remove('hidden');
 }
 
 function hideExplainButton() {
-    explainBtn.hidden = true;
+    explainBtn.classList.add('hidden');
+    // Remove from DOM after fade completes
+    setTimeout(() => {
+        if (explainBtn.classList.contains('hidden')) {
+            explainBtn.hidden = true;
+        }
+    }, 200);
     selectedText = '';
 }
 
@@ -278,12 +285,11 @@ function createExplainPopup(anchorRect) {
     popup.innerHTML = `
         <div class="explain-popup-header">
             <span class="explain-popup-title">
-                <span class="explain-popup-icon">✨</span>
+                <span class="explain-popup-icon">⚡</span>
                 eace Explain
             </span>
             <button class="explain-popup-close" title="Close">&times;</button>
         </div>
-        <div class="explain-popup-selected"></div>
         <div class="explain-popup-body">
             <div class="explain-popup-loading">
                 <div class="spinner"></div>
@@ -294,9 +300,6 @@ function createExplainPopup(anchorRect) {
     
     document.body.appendChild(popup);
     activePopup = popup;
-    
-    // Set the selected text
-    popup.querySelector('.explain-popup-selected').textContent = selectedText;
     
     // Position the popup to the right of the selection
     positionPopup(popup, anchorRect);
