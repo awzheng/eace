@@ -19,7 +19,7 @@ Voltage is the electrical pressure or "push" that causes electrons to flow. Thin
 ### Current (I)
 Current is the rate of electron flow through a conductor. In our water analogy, this is the amount of water actually flowing through the pipe.
 
-### Resistance (R)
+### Resistance \(R)
 Resistance opposes the flow of current. It's like a narrowing in a pipe that restricts water flow.
 
 ## Rearranging the Formula
@@ -60,7 +60,7 @@ I = 3A
 
 ## Thevenin Equivalent
 
-When analyzing complex circuits, Ohm's Law becomes even more powerful when combined with **Thevenin's Theorem**. A Thevenin equivalent circuit simplifies any linear circuit into a single voltage source (V_th) and a single series resistance (R_th), making it much easier to analyze.
+When analyzing complex circuits, Ohm's Law becomes even more powerful when combined with **Thevenin's Theorem**. A Thevenin equivalent circuit simplifies any linear circuit into a single voltage source $V_{th}$ and a single series resistance $R_{th}$, making it much easier to analyze.
 
 > **Pro Tip:** Highlight "Thevenin Equivalent" above and click "eace Explain" to learn more about this important concept!
 
