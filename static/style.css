@@ -82,6 +82,8 @@ body {
     height: 100vh;
     position: sticky;
     top: 0;
+    overflow: visible;
+    z-index: 50;
 }
 
 .sidebar-header {
@@ -112,6 +114,7 @@ body {
 .nav-tree {
     flex: 1;
     overflow-y: auto;
+    overflow-x: visible;
     padding: 1rem;
 }
 
@@ -120,45 +123,87 @@ body {
     font-size: 0.9rem;
 }
 
-/* Navigation Tree Items */
+/* Navigation Tree Items - Flyout Style */
 .nav-folder {
-    margin-bottom: 0.5rem;
+    position: relative;
+    margin-bottom: 2px;
 }
 
 .nav-folder-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
+    justify-content: space-between;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
     cursor: pointer;
     border-radius: 6px;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
 }
 
 .nav-folder-header:hover {
     background: var(--bg-tertiary);
-    color: var(--text-secondary);
+    color: var(--text-primary);
 }
 
-.nav-folder-icon {
-    transition: transform 0.2s ease;
+.nav-folder-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.nav-folder.collapsed .nav-folder-icon {
-    transform: rotate(-90deg);
+.nav-folder-arrow {
+    font-size: 1rem;
+    color: var(--text-muted);
+    transition: transform 0.15s ease;
 }
 
-.nav-folder.collapsed .nav-folder-items {
-    display: none;
+.nav-folder:hover > .nav-folder-header .nav-folder-arrow {
+    color: var(--text-primary);
 }
 
-.nav-folder-items {
-    padding-left: 0.5rem;
+/* Flyout submenu */
+.nav-flyout {
+    position: absolute;
+    left: 100%;
+    top: 0;
+    min-width: 220px;
+    max-width: 300px;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px var(--shadow-heavy);
+    padding: 0.5rem;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-8px);
+    transition: all 0.15s ease;
+    z-index: 100;
+}
+
+.nav-folder:hover > .nav-flyout {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(4px);
+}
+
+/* Nested flyouts */
+.nav-flyout .nav-folder {
+    margin-bottom: 0;
+}
+
+.nav-flyout .nav-folder-header {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.6rem;
+}
+
+.nav-flyout .nav-flyout {
+    left: 100%;
+    top: 0;
 }
 
 .nav-item {
@@ -166,11 +211,13 @@ body {
     padding: 0.5rem 0.75rem;
     color: var(--text-secondary);
     text-decoration: none;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     border-radius: 6px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    margin: 2px 0;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .nav-item:hover {
@@ -182,6 +229,12 @@ body {
     background: var(--accent-soft);
     color: var(--accent);
     font-weight: 500;
+}
+
+/* Items inside flyout */
+.nav-flyout .nav-item {
+    font-size: 0.85rem;
+    padding: 0.45rem 0.6rem;
 }
 
 .sidebar-footer {

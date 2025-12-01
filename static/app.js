@@ -47,7 +47,6 @@ function toggleTheme() {
 // =========================
 
 function getPathFromUrl() {
-    // Check hash first (e.g., #MATH115/5/5.1.md)
     const hash = window.location.hash.slice(1);
     if (hash) {
         return decodeURIComponent(hash);
@@ -56,9 +55,8 @@ function getPathFromUrl() {
 }
 
 function updateUrl(path) {
-    // Update URL hash without reloading page
     const newHash = encodeURIComponent(path);
-    history.pushState(null, '', `#${newHash}`);
+    history.pushState({ path: path }, '', `#${newHash}`);
 }
 
 // =========================
@@ -84,7 +82,7 @@ function renderLatex(element) {
 }
 
 // =========================
-// Navigation Tree
+// Navigation Tree (Flyout Style)
 // =========================
 
 async function loadFileTree() {
@@ -105,14 +103,13 @@ async function loadFileTree() {
             return;
         }
         
-        navTree.innerHTML = renderTree(tree);
+        navTree.innerHTML = renderTree(tree, 0);
         addNavListeners();
         
-        // Check if there's a path in the URL and load it
+        // Check URL and load content
         const urlPath = getPathFromUrl();
         if (urlPath) {
             loadContent(urlPath, true);
-            highlightNavItem(urlPath);
         }
     } catch (error) {
         console.error('Failed to load file tree:', error);
@@ -123,21 +120,23 @@ async function loadFileTree() {
 function renderTree(items, depth = 0) {
     return items.map(item => {
         if (item.type === 'directory') {
-            const isExpanded = depth < 2; // Auto-expand first 2 levels
+            const hasChildren = item.children && item.children.length > 0;
             return `
-                <div class="nav-folder ${isExpanded ? '' : 'collapsed'}">
-                    <div class="nav-folder-header" data-depth="${depth}">
-                        <span class="nav-folder-icon">▼</span>
-                        ${item.name}
+                <div class="nav-folder" data-depth="${depth}">
+                    <div class="nav-folder-header">
+                        <span class="nav-folder-name">${item.name}</span>
+                        ${hasChildren ? '<span class="nav-folder-arrow">›</span>' : ''}
                     </div>
-                    <div class="nav-folder-items">
-                        ${renderTree(item.children, depth + 1)}
-                    </div>
+                    ${hasChildren ? `
+                        <div class="nav-flyout">
+                            ${renderTree(item.children, depth + 1)}
+                        </div>
+                    ` : ''}
                 </div>
             `;
         } else {
             return `
-                <a class="nav-item" data-path="${item.path}" href="#${encodeURIComponent(item.path)}">
+                <a class="nav-item" data-path="${item.path}">
                     ${item.name}
                 </a>
             `;
@@ -146,40 +145,19 @@ function renderTree(items, depth = 0) {
 }
 
 function addNavListeners() {
-    // Folder toggle
-    document.querySelectorAll('.nav-folder-header').forEach(header => {
-        header.addEventListener('click', () => {
-            header.parentElement.classList.toggle('collapsed');
-        });
-    });
-    
     // File click
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             const path = item.dataset.path;
             loadContent(path);
             
             // Update active state
-            highlightNavItem(path);
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
         });
     });
-}
-
-function highlightNavItem(path) {
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    const navItem = document.querySelector(`.nav-item[data-path="${path}"]`);
-    if (navItem) {
-        navItem.classList.add('active');
-        // Expand parent folders
-        let parent = navItem.parentElement;
-        while (parent) {
-            if (parent.classList.contains('nav-folder')) {
-                parent.classList.remove('collapsed');
-            }
-            parent = parent.parentElement;
-        }
-    }
 }
 
 // =========================
@@ -187,7 +165,6 @@ function highlightNavItem(path) {
 // =========================
 
 async function loadContent(path, skipUrlUpdate = false) {
-    // Close any active popup when changing pages
     closePopup();
     
     try {
@@ -200,12 +177,11 @@ async function loadContent(path, skipUrlUpdate = false) {
         const data = await response.json();
         currentPath = path;
         
-        // Update URL
         if (!skipUrlUpdate) {
             updateUrl(path);
         }
         
-        // Update breadcrumb with clickable links
+        // Update breadcrumb
         const parts = path.split('/');
         breadcrumb.innerHTML = parts.map((part, i) => {
             const name = part.replace('.md', '').replace(/_/g, ' ');
@@ -216,14 +192,20 @@ async function loadContent(path, skipUrlUpdate = false) {
         // Render markdown
         articleBody.innerHTML = md.render(data.content);
         
-        // Render LaTeX equations
+        // Render LaTeX
         renderLatex(articleBody);
         
         // Show article, hide welcome
         welcome.hidden = true;
         article.hidden = false;
         
-        // Scroll to top
+        // Update active nav item
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        const navItem = document.querySelector(`.nav-item[data-path="${path}"]`);
+        if (navItem) {
+            navItem.classList.add('active');
+        }
+        
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
     } catch (error) {
@@ -231,7 +213,7 @@ async function loadContent(path, skipUrlUpdate = false) {
         articleBody.innerHTML = `
             <div class="error-message">
                 <h2>Failed to load content</h2>
-                <p>Could not load the requested file.</p>
+                <p>Could not load the requested file: ${path}</p>
             </div>
         `;
         welcome.hidden = true;
@@ -441,17 +423,23 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFileTree();
 });
 
-// Handle browser back/forward buttons
-window.addEventListener('popstate', () => {
+// Handle browser back/forward
+window.addEventListener('popstate', (e) => {
     const urlPath = getPathFromUrl();
     if (urlPath) {
         loadContent(urlPath, true);
-        highlightNavItem(urlPath);
     } else {
-        // Show welcome screen
         welcome.hidden = false;
         article.hidden = true;
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    }
+});
+
+// Also handle hashchange for better compatibility
+window.addEventListener('hashchange', () => {
+    const urlPath = getPathFromUrl();
+    if (urlPath && urlPath !== currentPath) {
+        loadContent(urlPath, true);
     }
 });
 
