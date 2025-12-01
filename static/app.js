@@ -17,6 +17,7 @@ let activePopup = null;
 let fileTreeData = null;
 
 // DOM Elements
+const app = document.querySelector('.app');
 const navTree = document.getElementById('nav-tree');
 const welcome = document.getElementById('welcome');
 const article = document.getElementById('article');
@@ -25,6 +26,28 @@ const breadcrumb = document.getElementById('breadcrumb');
 const explainBtn = document.getElementById('explain-btn');
 const themeToggle = document.getElementById('theme-toggle');
 const contentWrapper = document.getElementById('content-wrapper');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+
+// =========================
+// Sidebar Toggle
+// =========================
+
+function toggleSidebar() {
+    app.classList.toggle('sidebar-open');
+    const isOpen = app.classList.contains('sidebar-open');
+    sidebarToggle.textContent = isOpen ? '✕' : '☰';
+    localStorage.setItem('eace-sidebar', isOpen ? 'open' : 'closed');
+}
+
+function initSidebar() {
+    const saved = localStorage.getItem('eace-sidebar');
+    if (saved === 'closed') {
+        app.classList.remove('sidebar-open');
+        sidebarToggle.textContent = '☰';
+    } else {
+        sidebarToggle.textContent = '✕';
+    }
+}
 
 // =========================
 // Theme Management
@@ -105,6 +128,7 @@ async function loadFileTree() {
         
         navTree.innerHTML = renderTree(tree, 0);
         addNavListeners();
+        setupFlyoutPositioning();
         
         // Check URL and load content
         const urlPath = getPathFromUrl();
@@ -142,6 +166,31 @@ function renderTree(items, depth = 0) {
             `;
         }
     }).join('');
+}
+
+function setupFlyoutPositioning() {
+    document.querySelectorAll('.nav-folder').forEach(folder => {
+        const header = folder.querySelector(':scope > .nav-folder-header');
+        const flyout = folder.querySelector(':scope > .nav-flyout');
+        
+        if (!flyout) return;
+        
+        folder.addEventListener('mouseenter', () => {
+            const headerRect = header.getBoundingClientRect();
+            const sidebarWidth = 260;
+            
+            // Position flyout to the right of the sidebar
+            flyout.style.left = `${sidebarWidth}px`;
+            flyout.style.top = `${Math.max(headerRect.top, 10)}px`;
+            
+            // Make sure it doesn't go off screen bottom
+            const flyoutHeight = flyout.offsetHeight;
+            const maxTop = window.innerHeight - flyoutHeight - 10;
+            if (headerRect.top > maxTop) {
+                flyout.style.top = `${maxTop}px`;
+            }
+        });
+    });
 }
 
 function addNavListeners() {
@@ -420,8 +469,12 @@ async function explainSelection() {
 
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
+    initSidebar();
     loadFileTree();
 });
+
+// Sidebar toggle
+sidebarToggle.addEventListener('click', toggleSidebar);
 
 // Handle browser back/forward
 window.addEventListener('popstate', (e) => {
@@ -435,7 +488,7 @@ window.addEventListener('popstate', (e) => {
     }
 });
 
-// Also handle hashchange for better compatibility
+// Handle hashchange
 window.addEventListener('hashchange', () => {
     const urlPath = getPathFromUrl();
     if (urlPath && urlPath !== currentPath) {

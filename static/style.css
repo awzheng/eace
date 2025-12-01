@@ -1,11 +1,10 @@
 /* 
  * eace - Easy ECE
- * Clean, minimal aesthetic inspired by Webtoon
+ * Clean, minimal aesthetic
  */
 
 /* === CSS Variables === */
 :root {
-    /* Light theme - Webtoon-inspired clean look */
     --bg-primary: #FFFFFF;
     --bg-secondary: #F8F8F8;
     --bg-tertiary: #EFEFEF;
@@ -17,15 +16,15 @@
     --accent-soft: #E8FBF0;
     --border: #E5E5E5;
     --shadow: rgba(60, 60, 60, 0.06);
-    --shadow-heavy: rgba(60, 60, 60, 0.12);
+    --shadow-heavy: rgba(60, 60, 60, 0.15);
     --code-bg: #F5F5F5;
     --success: #06D363;
     --error: #E53935;
-    --highlight: #FFF9C4; /* Pale yellow for text selection */
+    --highlight: #FFF9C4;
+    --sidebar-width: 260px;
 }
 
 [data-theme="dark"] {
-    /* Dark theme - keep it clean with green accent */
     --bg-primary: #1A1A1A;
     --bg-secondary: #242424;
     --bg-tertiary: #2E2E2E;
@@ -41,7 +40,7 @@
     --code-bg: #2A2A2A;
     --success: #06D363;
     --error: #EF5350;
-    --highlight: rgba(255, 249, 196, 0.3); /* Pale yellow, slightly transparent for dark mode */
+    --highlight: rgba(255, 249, 196, 0.3);
 }
 
 /* === Reset & Base === */
@@ -69,21 +68,58 @@ body {
 .app {
     display: flex;
     min-height: 100vh;
+    position: relative;
+}
+
+/* === Sidebar Toggle Button === */
+.sidebar-toggle {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    width: 44px;
+    height: 44px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.sidebar-toggle:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.sidebar-open .sidebar-toggle {
+    left: calc(var(--sidebar-width) + 1rem);
 }
 
 /* === Sidebar === */
 .sidebar {
-    width: 280px;
-    min-width: 280px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
     background: var(--bg-secondary);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    position: sticky;
-    top: 0;
-    overflow: visible;
-    z-index: 50;
+    z-index: 150;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 20px var(--shadow-heavy);
+}
+
+.sidebar-open .sidebar {
+    transform: translateX(0);
 }
 
 .sidebar-header {
@@ -114,7 +150,6 @@ body {
 .nav-tree {
     flex: 1;
     overflow-y: auto;
-    overflow-x: visible;
     padding: 1rem;
 }
 
@@ -166,29 +201,25 @@ body {
 
 /* Flyout submenu */
 .nav-flyout {
-    position: absolute;
-    left: 100%;
-    top: 0;
-    min-width: 220px;
-    max-width: 300px;
-    max-height: 70vh;
+    position: fixed;
+    min-width: 240px;
+    max-width: 320px;
+    max-height: 60vh;
     overflow-y: auto;
     background: var(--bg-primary);
     border: 1px solid var(--border);
     border-radius: 8px;
-    box-shadow: 0 8px 24px var(--shadow-heavy);
+    box-shadow: 0 8px 32px var(--shadow-heavy);
     padding: 0.5rem;
     opacity: 0;
     visibility: hidden;
-    transform: translateX(-8px);
-    transition: all 0.15s ease;
-    z-index: 100;
+    z-index: 1000;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
 }
 
 .nav-folder:hover > .nav-flyout {
     opacity: 1;
     visibility: visible;
-    transform: translateX(4px);
 }
 
 /* Nested flyouts */
@@ -199,11 +230,6 @@ body {
 .nav-flyout .nav-folder-header {
     font-size: 0.85rem;
     padding: 0.5rem 0.6rem;
-}
-
-.nav-flyout .nav-flyout {
-    left: 100%;
-    top: 0;
 }
 
 .nav-item {
@@ -235,11 +261,15 @@ body {
 .nav-flyout .nav-item {
     font-size: 0.85rem;
     padding: 0.45rem 0.6rem;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .sidebar-footer {
     padding: 1rem 1.5rem;
     border-top: 1px solid var(--border);
+    display: flex;
+    gap: 0.5rem;
 }
 
 /* Theme Toggle */
@@ -284,7 +314,13 @@ body {
     display: flex;
     justify-content: center;
     padding: 2rem;
+    padding-top: 4rem;
     background: var(--bg-primary);
+    transition: margin-left 0.3s ease;
+}
+
+.sidebar-open .content {
+    margin-left: var(--sidebar-width);
 }
 
 .content-wrapper {
@@ -330,17 +366,6 @@ body {
     font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
     font-size: 0.85rem;
     color: var(--text-secondary);
-}
-
-.hint-button {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    background: var(--accent);
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 500;
-    border-radius: 4px;
-    vertical-align: middle;
 }
 
 /* Article */
@@ -555,7 +580,7 @@ body {
     font-size: 0.9rem;
 }
 
-/* === Explain Popup (Google Docs comment style) === */
+/* === Explain Popup === */
 .explain-popup {
     position: absolute;
     width: 320px;
@@ -564,7 +589,7 @@ body {
     border: 1px solid var(--border);
     border-radius: 10px;
     box-shadow: 0 8px 32px var(--shadow-heavy), 0 2px 8px var(--shadow);
-    z-index: 1500;
+    z-index: 2000;
     display: flex;
     flex-direction: column;
     animation: popupSlideIn 0.25s ease;
@@ -760,20 +785,17 @@ body {
 
 /* === Responsive === */
 @media (max-width: 768px) {
-    .app {
-        flex-direction: column;
+    .sidebar-open .content {
+        margin-left: 0;
     }
     
-    .sidebar {
-        width: 100%;
-        min-width: unset;
-        height: auto;
-        position: relative;
-        max-height: 40vh;
+    .sidebar-open .sidebar-toggle {
+        left: 1rem;
     }
     
     .content {
         padding: 1.5rem;
+        padding-top: 4rem;
     }
     
     .explain-popup {
