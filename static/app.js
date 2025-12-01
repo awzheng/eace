@@ -14,6 +14,7 @@ const md = window.markdownit({
 let currentPath = null;
 let selectedText = '';
 let activePopup = null;
+let fileTreeData = null;
 
 // DOM Elements
 const navTree = document.getElementById('nav-tree');
@@ -42,13 +43,30 @@ function toggleTheme() {
 }
 
 // =========================
+// URL Routing
+// =========================
+
+function getPathFromUrl() {
+    // Check hash first (e.g., #MATH115/5/5.1.md)
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+        return decodeURIComponent(hash);
+    }
+    return null;
+}
+
+function updateUrl(path) {
+    // Update URL hash without reloading page
+    const newHash = encodeURIComponent(path);
+    history.pushState(null, '', `#${newHash}`);
+}
+
+// =========================
 // LaTeX Rendering
 // =========================
 
 function renderLatex(element) {
-    // Check if KaTeX is loaded
     if (typeof renderMathInElement === 'undefined') {
-        // KaTeX not loaded yet, wait and retry
         setTimeout(() => renderLatex(element), 100);
         return;
     }
@@ -73,6 +91,7 @@ async function loadFileTree() {
     try {
         const response = await fetch('/tree');
         const tree = await response.json();
+        fileTreeData = tree;
         
         if (tree.length === 0) {
             navTree.innerHTML = `
@@ -88,29 +107,37 @@ async function loadFileTree() {
         
         navTree.innerHTML = renderTree(tree);
         addNavListeners();
+        
+        // Check if there's a path in the URL and load it
+        const urlPath = getPathFromUrl();
+        if (urlPath) {
+            loadContent(urlPath, true);
+            highlightNavItem(urlPath);
+        }
     } catch (error) {
         console.error('Failed to load file tree:', error);
         navTree.innerHTML = '<div class="nav-error">Failed to load navigation</div>';
     }
 }
 
-function renderTree(items) {
+function renderTree(items, depth = 0) {
     return items.map(item => {
         if (item.type === 'directory') {
+            const isExpanded = depth < 2; // Auto-expand first 2 levels
             return `
-                <div class="nav-folder">
-                    <div class="nav-folder-header">
+                <div class="nav-folder ${isExpanded ? '' : 'collapsed'}">
+                    <div class="nav-folder-header" data-depth="${depth}">
                         <span class="nav-folder-icon">▼</span>
                         ${item.name}
                     </div>
                     <div class="nav-folder-items">
-                        ${renderTree(item.children)}
+                        ${renderTree(item.children, depth + 1)}
                     </div>
                 </div>
             `;
         } else {
             return `
-                <a class="nav-item" data-path="${item.path}">
+                <a class="nav-item" data-path="${item.path}" href="#${encodeURIComponent(item.path)}">
                     ${item.name}
                 </a>
             `;
@@ -128,22 +155,38 @@ function addNavListeners() {
     
     // File click
     document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
             const path = item.dataset.path;
             loadContent(path);
             
             // Update active state
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
+            highlightNavItem(path);
         });
     });
+}
+
+function highlightNavItem(path) {
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    const navItem = document.querySelector(`.nav-item[data-path="${path}"]`);
+    if (navItem) {
+        navItem.classList.add('active');
+        // Expand parent folders
+        let parent = navItem.parentElement;
+        while (parent) {
+            if (parent.classList.contains('nav-folder')) {
+                parent.classList.remove('collapsed');
+            }
+            parent = parent.parentElement;
+        }
+    }
 }
 
 // =========================
 // Content Loading
 // =========================
 
-async function loadContent(path) {
+async function loadContent(path, skipUrlUpdate = false) {
     // Close any active popup when changing pages
     closePopup();
     
@@ -157,7 +200,12 @@ async function loadContent(path) {
         const data = await response.json();
         currentPath = path;
         
-        // Update breadcrumb
+        // Update URL
+        if (!skipUrlUpdate) {
+            updateUrl(path);
+        }
+        
+        // Update breadcrumb with clickable links
         const parts = path.split('/');
         breadcrumb.innerHTML = parts.map((part, i) => {
             const name = part.replace('.md', '').replace(/_/g, ' ');
@@ -186,6 +234,8 @@ async function loadContent(path) {
                 <p>Could not load the requested file.</p>
             </div>
         `;
+        welcome.hidden = true;
+        article.hidden = false;
     }
 }
 
@@ -196,7 +246,6 @@ async function loadContent(path) {
 function handleTextSelection(e) {
     const selection = window.getSelection();
     
-    // Must have an actual selection with content
     if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
         hideExplainButton();
         return;
@@ -204,13 +253,11 @@ function handleTextSelection(e) {
     
     const text = selection.toString().trim();
     
-    // Must have meaningful text (at least 2 chars, less than 1000)
     if (text.length < 2 || text.length > 1000) {
         hideExplainButton();
         return;
     }
     
-    // Selection must be within the article body
     const range = selection.getRangeAt(0);
     const selectionContainer = range.commonAncestorContainer;
     
@@ -221,34 +268,23 @@ function handleTextSelection(e) {
     
     selectedText = text;
     
-    // Get the bounding rect of the selection
     const rect = range.getBoundingClientRect();
-    
-    // Get the content wrapper's right edge for alignment
     const contentRect = contentWrapper.getBoundingClientRect();
     
-    // Position button at the right edge of the content area, aligned with selection
     const btnWidth = 110;
-    const btnHeight = 32;
-    const gap = 12; // gap from the right edge of content
+    const gap = 12;
     
-    // Place button to the right of the content area
     let left = contentRect.right + gap;
     
-    // If not enough space on the right, place it at the end of the selection
     if (left + btnWidth > window.innerWidth - 10) {
         left = rect.right + 8;
     }
     
-    // If still overflowing, place below the selection
     if (left + btnWidth > window.innerWidth - 10) {
         left = Math.min(rect.right, window.innerWidth - btnWidth - 10);
     }
     
-    // Vertical position: align with the top of the selection
     let top = rect.top + window.scrollY;
-    
-    // Make sure it doesn't go off screen
     top = Math.max(window.scrollY + 10, top);
     
     explainBtn.style.left = `${left}px`;
@@ -259,7 +295,6 @@ function handleTextSelection(e) {
 
 function hideExplainButton() {
     explainBtn.classList.add('hidden');
-    // Remove from DOM after fade completes
     setTimeout(() => {
         if (explainBtn.classList.contains('hidden')) {
             explainBtn.hidden = true;
@@ -276,10 +311,8 @@ function closePopup() {
 }
 
 function createExplainPopup(anchorRect) {
-    // Close any existing popup
     closePopup();
     
-    // Create popup element
     const popup = document.createElement('div');
     popup.className = 'explain-popup';
     popup.innerHTML = `
@@ -301,10 +334,8 @@ function createExplainPopup(anchorRect) {
     document.body.appendChild(popup);
     activePopup = popup;
     
-    // Position the popup to the right of the selection
     positionPopup(popup, anchorRect);
     
-    // Close button handler
     popup.querySelector('.explain-popup-close').addEventListener('click', closePopup);
     
     return popup;
@@ -316,25 +347,20 @@ function positionPopup(popup, anchorRect) {
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     
-    // Get content wrapper position for better alignment
     const contentRect = contentWrapper.getBoundingClientRect();
     
-    // Try to position to the right of the content area
     let left = contentRect.right + padding;
     let top = anchorRect.top + window.scrollY;
     
-    // If not enough space on the right, position to the left of selection
     if (left + popupWidth > viewportWidth - padding) {
         left = anchorRect.left - popupWidth - padding;
     }
     
-    // If still not fitting, position below the selection
     if (left < padding) {
         left = Math.max(padding, (viewportWidth - popupWidth) / 2);
         top = anchorRect.bottom + window.scrollY + padding;
     }
     
-    // Ensure popup doesn't go below viewport
     const popupHeight = popup.offsetHeight || 200;
     const maxTop = window.scrollY + viewportHeight - popupHeight - padding;
     top = Math.min(top, maxTop);
@@ -347,29 +373,24 @@ function positionPopup(popup, anchorRect) {
 async function explainSelection() {
     if (!selectedText) return;
     
-    // Get selection position before it's cleared
     const selection = window.getSelection();
     let anchorRect;
     
     if (selection && selection.rangeCount > 0) {
         anchorRect = selection.getRangeAt(0).getBoundingClientRect();
     } else {
-        // Fallback to button position
         const btnRect = explainBtn.getBoundingClientRect();
         anchorRect = btnRect;
     }
     
     const textToExplain = selectedText;
     
-    // Hide the explain button
     hideExplainButton();
     
-    // Create and show the popup
     const popup = createExplainPopup(anchorRect);
     const popupBody = popup.querySelector('.explain-popup-body');
     
     try {
-        // Get context from current path
         const context = currentPath 
             ? currentPath.replace('.md', '').replace(/_/g, ' ').replace(/\//g, ' > ')
             : null;
@@ -392,10 +413,8 @@ async function explainSelection() {
         
         const data = await response.json();
         
-        // Render the explanation as markdown
         popupBody.innerHTML = `<div class="explain-popup-content">${md.render(data.explanation)}</div>`;
         
-        // Also render any LaTeX in the explanation
         renderLatex(popupBody);
         
     } catch (error) {
@@ -422,12 +441,25 @@ document.addEventListener('DOMContentLoaded', () => {
     loadFileTree();
 });
 
+// Handle browser back/forward buttons
+window.addEventListener('popstate', () => {
+    const urlPath = getPathFromUrl();
+    if (urlPath) {
+        loadContent(urlPath, true);
+        highlightNavItem(urlPath);
+    } else {
+        // Show welcome screen
+        welcome.hidden = false;
+        article.hidden = true;
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    }
+});
+
 // Theme toggle
 themeToggle.addEventListener('click', toggleTheme);
 
-// Text selection - only trigger on mouseup within content area
+// Text selection
 document.addEventListener('mouseup', (e) => {
-    // Ignore clicks on UI elements
     if (e.target.closest('.explain-btn') || 
         e.target.closest('.explain-popup') ||
         e.target.closest('.sidebar') ||
@@ -435,18 +467,15 @@ document.addEventListener('mouseup', (e) => {
         return;
     }
     
-    // Small delay to let selection complete
     setTimeout(() => handleTextSelection(e), 10);
 });
 
-// Hide explain button on mousedown (but not on popup or button)
+// Hide explain button on mousedown
 document.addEventListener('mousedown', (e) => {
     if (!e.target.closest('.explain-btn') && !e.target.closest('.explain-popup')) {
         hideExplainButton();
     }
 });
-
-// Popups stay open until explicitly closed - no auto-close on outside click
 
 // Explain button click
 explainBtn.addEventListener('click', (e) => {
@@ -461,5 +490,3 @@ document.addEventListener('keydown', (e) => {
         hideExplainButton();
     }
 });
-
-// Popups stay open during scroll - no auto-close

@@ -23,6 +23,11 @@ class ExplainRequest(BaseModel):
     context: Optional[str] = None
 
 
+def natural_sort_key(s):
+    """Sort strings with numbers naturally (1, 2, 10 instead of 1, 10, 2)."""
+    import re
+    return [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', s)]
+
 def build_file_tree(directory: Path, base_path: Path = None) -> list:
     """Recursively build a file tree structure from the content directory."""
     if base_path is None:
@@ -31,7 +36,7 @@ def build_file_tree(directory: Path, base_path: Path = None) -> list:
     items = []
     
     try:
-        entries = sorted(directory.iterdir(), key=lambda x: (x.is_file(), x.name.lower()))
+        entries = sorted(directory.iterdir(), key=lambda x: (x.is_file(), natural_sort_key(x.name)))
     except (PermissionError, FileNotFoundError):
         return items
     
@@ -43,16 +48,15 @@ def build_file_tree(directory: Path, base_path: Path = None) -> list:
         
         if entry.is_dir():
             children = build_file_tree(entry, base_path)
-            if children:
-                items.append({
-                    "name": entry.name.replace('_', ' ').title(),
-                    "path": str(relative_path),
-                    "type": "directory",
-                    "children": children
-                })
+            items.append({
+                "name": entry.name.replace('_', ' '),
+                "path": str(relative_path),
+                "type": "directory",
+                "children": children if children else []
+            })
         elif entry.suffix.lower() == '.md':
             items.append({
-                "name": entry.stem.replace('_', ' ').title(),
+                "name": entry.stem.replace('_', ' '),
                 "path": str(relative_path),
                 "type": "file"
             })
