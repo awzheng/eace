@@ -232,6 +232,17 @@ body {
     padding: 0.5rem 0.6rem;
 }
 
+/* Nested flyout positioning - appears to the right of parent */
+.nav-flyout .nav-flyout {
+    z-index: 1001;
+}
+
+/* Keep parent flyout visible when hovering nested flyout */
+.nav-flyout .nav-folder:hover > .nav-flyout {
+    opacity: 1;
+    visibility: visible;
+}
+
 .nav-item {
     display: block;
     padding: 0.5rem 0.75rem;

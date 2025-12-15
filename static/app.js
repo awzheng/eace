@@ -179,8 +179,20 @@ function setupFlyoutPositioning() {
             const headerRect = header.getBoundingClientRect();
             const sidebarWidth = 260;
             
-            // Position flyout to the right of the sidebar
-            flyout.style.left = `${sidebarWidth}px`;
+            // Check if this folder is inside another flyout (nested)
+            const parentFlyout = folder.closest('.nav-flyout');
+            
+            let leftPos;
+            if (parentFlyout) {
+                // Nested flyout: position to the right of parent flyout
+                const parentRect = parentFlyout.getBoundingClientRect();
+                leftPos = parentRect.right;
+            } else {
+                // Top-level: position to the right of the sidebar
+                leftPos = sidebarWidth;
+            }
+            
+            flyout.style.left = `${leftPos}px`;
             flyout.style.top = `${Math.max(headerRect.top, 10)}px`;
             
             // Make sure it doesn't go off screen bottom
@@ -188,6 +200,18 @@ function setupFlyoutPositioning() {
             const maxTop = window.innerHeight - flyoutHeight - 10;
             if (headerRect.top > maxTop) {
                 flyout.style.top = `${maxTop}px`;
+            }
+            
+            // Make sure it doesn't go off screen right
+            const flyoutWidth = flyout.offsetWidth || 240;
+            if (leftPos + flyoutWidth > window.innerWidth - 10) {
+                // Position to the left of the parent instead
+                if (parentFlyout) {
+                    const parentRect = parentFlyout.getBoundingClientRect();
+                    flyout.style.left = `${parentRect.left - flyoutWidth}px`;
+                } else {
+                    flyout.style.left = `${window.innerWidth - flyoutWidth - 10}px`;
+                }
             }
         });
     });
