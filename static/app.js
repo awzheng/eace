@@ -234,6 +234,102 @@ function addNavListeners() {
 }
 
 // =========================
+// Table of Contents
+// =========================
+
+function generateTableOfContents() {
+    // Get all headings (h1, h2, h3) from article body
+    const headings = articleBody.querySelectorAll('h1, h2, h3');
+    
+    if (headings.length <= 1) {
+        // No ToC needed if only title or no headings
+        return;
+    }
+    
+    // Build ToC items, skipping the first h1 (title)
+    const tocItems = [];
+    let foundFirstH1 = false;
+    let headingIndex = 0;
+    
+    headings.forEach((heading) => {
+        // Skip the first h1 (page title)
+        if (heading.tagName === 'H1' && !foundFirstH1) {
+            foundFirstH1 = true;
+            return;
+        }
+        
+        // Generate unique ID for the heading if it doesn't have one
+        if (!heading.id) {
+            heading.id = `heading-${headingIndex++}`;
+        }
+        
+        const level = parseInt(heading.tagName.charAt(1));
+        const text = heading.textContent;
+        
+        tocItems.push({
+            id: heading.id,
+            text: text,
+            level: level
+        });
+    });
+    
+    if (tocItems.length === 0) {
+        return;
+    }
+    
+    // Create ToC HTML
+    const tocHtml = `
+        <div class="toc-box">
+            <div class="toc-header">
+                <span class="toc-icon">📑</span>
+                <span class="toc-title">Contents</span>
+                <button class="toc-toggle" aria-label="Toggle table of contents">−</button>
+            </div>
+            <nav class="toc-body">
+                <ol class="toc-list">
+                    ${tocItems.map(item => `
+                        <li class="toc-item toc-level-${item.level}">
+                            <a href="#${item.id}" class="toc-link">${item.text}</a>
+                        </li>
+                    `).join('')}
+                </ol>
+            </nav>
+        </div>
+    `;
+    
+    // Insert ToC after the first h1
+    const firstH1 = articleBody.querySelector('h1');
+    if (firstH1) {
+        firstH1.insertAdjacentHTML('afterend', tocHtml);
+    } else {
+        // If no h1, insert at the beginning
+        articleBody.insertAdjacentHTML('afterbegin', tocHtml);
+    }
+    
+    // Add toggle functionality
+    const tocBox = articleBody.querySelector('.toc-box');
+    const tocToggle = tocBox.querySelector('.toc-toggle');
+    const tocBody = tocBox.querySelector('.toc-body');
+    
+    tocToggle.addEventListener('click', () => {
+        tocBox.classList.toggle('collapsed');
+        tocToggle.textContent = tocBox.classList.contains('collapsed') ? '+' : '−';
+    });
+    
+    // Smooth scroll for ToC links
+    tocBox.querySelectorAll('.toc-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const targetId = link.getAttribute('href').slice(1);
+            const target = document.getElementById(targetId);
+            if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    });
+}
+
+// =========================
 // Content Loading
 // =========================
 
@@ -264,6 +360,9 @@ async function loadContent(path, skipUrlUpdate = false) {
         
         // Render markdown
         articleBody.innerHTML = md.render(data.content);
+        
+        // Generate Table of Contents
+        generateTableOfContents();
         
         // Render LaTeX
         renderLatex(articleBody);

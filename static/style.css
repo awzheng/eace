@@ -531,6 +531,166 @@ body {
     margin: 1rem 0;
 }
 
+/* === Table of Contents (Fandom Wiki Style) === */
+.toc-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 1.5rem 0 2rem;
+    max-width: 320px;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+
+.toc-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border);
+    border-radius: 8px 8px 0 0;
+}
+
+.toc-icon {
+    font-size: 1rem;
+}
+
+.toc-title {
+    flex: 1;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.toc-toggle {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    line-height: 1;
+}
+
+.toc-toggle:hover {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.toc-body {
+    padding: 0.75rem 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.3s ease;
+}
+
+.toc-box.collapsed .toc-body {
+    max-height: 0;
+    padding: 0 1rem;
+    opacity: 0;
+    overflow: hidden;
+}
+
+.toc-box.collapsed .toc-header {
+    border-bottom: none;
+    border-radius: 8px;
+}
+
+.toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: toc-counter;
+}
+
+.toc-item {
+    margin: 0;
+    padding: 0;
+}
+
+.toc-link {
+    display: block;
+    padding: 0.35rem 0;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: color 0.15s ease, padding-left 0.15s ease;
+    border-left: 2px solid transparent;
+}
+
+.toc-link:hover {
+    color: var(--accent);
+    padding-left: 0.5rem;
+    border-left-color: var(--accent);
+}
+
+/* Indentation for different heading levels */
+.toc-level-1 .toc-link {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.toc-level-2 .toc-link {
+    padding-left: 0.75rem;
+}
+
+.toc-level-2 .toc-link:hover {
+    padding-left: 1.25rem;
+}
+
+.toc-level-3 .toc-link {
+    padding-left: 1.5rem;
+    font-size: 0.85rem;
+}
+
+.toc-level-3 .toc-link:hover {
+    padding-left: 2rem;
+}
+
+/* Numbering style */
+.toc-list {
+    counter-reset: toc-h1 toc-h2 toc-h3;
+}
+
+.toc-level-1 {
+    counter-increment: toc-h1;
+    counter-reset: toc-h2 toc-h3;
+}
+
+.toc-level-1 .toc-link::before {
+    content: counter(toc-h1) ". ";
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.toc-level-2 {
+    counter-increment: toc-h2;
+    counter-reset: toc-h3;
+}
+
+.toc-level-2 .toc-link::before {
+    content: counter(toc-h1) "." counter(toc-h2) " ";
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.toc-level-3 {
+    counter-increment: toc-h3;
+}
+
+.toc-level-3 .toc-link::before {
+    content: counter(toc-h1) "." counter(toc-h2) "." counter(toc-h3) " ";
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
 /* === LaTeX / KaTeX Styling === */
 .katex-display {
     margin: 1.5rem 0;
