@@ -234,10 +234,18 @@ function addNavListeners() {
 }
 
 // =========================
-// Table of Contents
+// Table of Contents Sidebar
 // =========================
 
+let tocSidebar = null;
+
 function generateTableOfContents() {
+    // Remove existing ToC sidebar if any
+    if (tocSidebar) {
+        tocSidebar.remove();
+        tocSidebar = null;
+    }
+    
     // Get all headings (h1, h2, h3) from article body
     const headings = articleBody.querySelectorAll('h1, h2, h3');
     
@@ -277,13 +285,17 @@ function generateTableOfContents() {
         return;
     }
     
-    // Create ToC HTML
-    const tocHtml = `
-        <div class="toc-box">
+    // Create ToC sidebar element
+    tocSidebar = document.createElement('aside');
+    tocSidebar.className = 'toc-sidebar';
+    tocSidebar.innerHTML = `
+        <button class="toc-sidebar-toggle" aria-label="Toggle table of contents" title="Toggle Contents">
+            <span class="toc-toggle-icon">📑</span>
+        </button>
+        <div class="toc-sidebar-panel">
             <div class="toc-header">
                 <span class="toc-icon">📑</span>
                 <span class="toc-title">Contents</span>
-                <button class="toc-toggle" aria-label="Toggle table of contents">−</button>
             </div>
             <nav class="toc-body">
                 <ol class="toc-list">
@@ -297,27 +309,25 @@ function generateTableOfContents() {
         </div>
     `;
     
-    // Insert ToC after the first h1
-    const firstH1 = articleBody.querySelector('h1');
-    if (firstH1) {
-        firstH1.insertAdjacentHTML('afterend', tocHtml);
-    } else {
-        // If no h1, insert at the beginning
-        articleBody.insertAdjacentHTML('afterbegin', tocHtml);
+    // Append to body
+    document.body.appendChild(tocSidebar);
+    
+    // Check saved state
+    const savedState = localStorage.getItem('eace-toc-open');
+    if (savedState === 'false') {
+        tocSidebar.classList.add('collapsed');
     }
     
     // Add toggle functionality
-    const tocBox = articleBody.querySelector('.toc-box');
-    const tocToggle = tocBox.querySelector('.toc-toggle');
-    const tocBody = tocBox.querySelector('.toc-body');
-    
-    tocToggle.addEventListener('click', () => {
-        tocBox.classList.toggle('collapsed');
-        tocToggle.textContent = tocBox.classList.contains('collapsed') ? '+' : '−';
+    const toggleBtn = tocSidebar.querySelector('.toc-sidebar-toggle');
+    toggleBtn.addEventListener('click', () => {
+        tocSidebar.classList.toggle('collapsed');
+        const isOpen = !tocSidebar.classList.contains('collapsed');
+        localStorage.setItem('eace-toc-open', isOpen);
     });
     
     // Smooth scroll for ToC links
-    tocBox.querySelectorAll('.toc-link').forEach(link => {
+    tocSidebar.querySelectorAll('.toc-link').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const targetId = link.getAttribute('href').slice(1);
@@ -327,6 +337,39 @@ function generateTableOfContents() {
             }
         });
     });
+    
+    // Highlight current section on scroll
+    setupScrollSpy();
+}
+
+function setupScrollSpy() {
+    if (!tocSidebar) return;
+    
+    const tocLinks = tocSidebar.querySelectorAll('.toc-link');
+    const headingIds = Array.from(tocLinks).map(link => link.getAttribute('href').slice(1));
+    
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const id = entry.target.id;
+                tocLinks.forEach(link => {
+                    link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+                });
+            }
+        });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    
+    headingIds.forEach(id => {
+        const heading = document.getElementById(id);
+        if (heading) observer.observe(heading);
+    });
+}
+
+function removeTableOfContents() {
+    if (tocSidebar) {
+        tocSidebar.remove();
+        tocSidebar = null;
+    }
 }
 
 // =========================
@@ -607,6 +650,7 @@ window.addEventListener('popstate', (e) => {
     } else {
         welcome.hidden = false;
         article.hidden = true;
+        removeTableOfContents();
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
     }
 });
